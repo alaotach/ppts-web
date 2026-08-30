@@ -40,8 +40,7 @@
         }
 
         /* FULLSCREEN STATE */
-        .viewer-container:fullscreen .viewer-header,
-        .viewer-container:-webkit-full-screen .viewer-header {
+        .viewer-container.is-fullscreen .viewer-header {
             position: absolute;
             top: 0;
             left: 0;
@@ -49,8 +48,7 @@
             transform: translateY(-100%);
         }
 
-        .viewer-container:fullscreen .hover-zone,
-        .viewer-container:-webkit-full-screen .hover-zone {
+        .viewer-container.is-fullscreen .hover-zone {
             display: block;
             position: absolute;
             top: 0;
@@ -60,10 +58,8 @@
             z-index: 40;
         }
 
-        .viewer-container:fullscreen .hover-zone:hover + .viewer-header,
-        .viewer-container:fullscreen .viewer-header:hover,
-        .viewer-container:-webkit-full-screen .hover-zone:hover + .viewer-header,
-        .viewer-container:-webkit-full-screen .viewer-header:hover {
+        .viewer-container.is-fullscreen .hover-zone:hover + .viewer-header,
+        .viewer-container.is-fullscreen .viewer-header:hover {
             transform: translateY(0);
         }
 
@@ -250,15 +246,25 @@
             }
 
             // Fullscreen logic
+            const container = document.querySelector('.viewer-container');
             const fullscreenBtn = document.getElementById('fullscreen-btn');
+            
             fullscreenBtn.addEventListener('click', () => {
-                const container = document.querySelector('.viewer-container');
                 if (!document.fullscreenElement) {
                     container.requestFullscreen().catch(err => {
                         console.error(`Error attempting to enable fullscreen: ${err.message}`);
                     });
                 } else {
                     document.exitFullscreen();
+                }
+            });
+
+            // Listen for fullscreen changes to toggle the CSS class
+            document.addEventListener('fullscreenchange', () => {
+                if (document.fullscreenElement) {
+                    container.classList.add('is-fullscreen');
+                } else {
+                    container.classList.remove('is-fullscreen');
                 }
             });
         });
