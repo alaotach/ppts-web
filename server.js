@@ -80,6 +80,11 @@ app.get('/api/presentations', (req, res) => {
   });
 });
 
+// Explicit route for / just in case express.static misses it
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
