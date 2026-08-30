@@ -24,7 +24,7 @@
         #viewer-content {
             flex-grow: 1;
             position: relative;
-            overflow: auto;
+            overflow: hidden; /* Hide overflow so only one slide is visible */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -37,16 +37,52 @@
         #pptx-container {
             width: 100%;
             height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #f0f0f0;
+            position: relative;
+            background-color: #000;
+        }
+        /* Style the children of pptx-container to be absolute and hidden by default */
+        #pptx-container > div {
+            display: none !important;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #pptx-container > div.active-slide {
+            display: block !important;
         }
         #loading-text {
             color: white;
             font-size: 1.5rem;
             position: absolute;
+            z-index: 20;
         }
+        /* Navigation Controls */
+        .nav-controls {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 30px;
+            z-index: 100;
+            gap: 15px;
+            align-items: center;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+        .nav-btn:hover { color: #00c4cc; }
+        #slide-counter { color: white; font-family: sans-serif; font-size: 1.1rem; min-width: 60px; text-align: center; }
     </style>
 </head>
 <body>
@@ -61,6 +97,12 @@
         <div id="viewer-content">
             <div id="loading-text">Loading presentation...</div>
             <div id="pptx-container" style="display: none;"></div>
+            
+            <div class="nav-controls" id="nav-controls">
+                <button class="nav-btn" id="prev-btn">&#8592;</button>
+                <span id="slide-counter">1 / 1</span>
+                <button class="nav-btn" id="next-btn">&#8594;</button>
+            </div>
         </div>
     </div>
 
@@ -73,13 +115,19 @@
             const viewerContent = document.getElementById('viewer-content');
             const pptxContainer = document.getElementById('pptx-container');
             const loadingText = document.getElementById('loading-text');
+            const navControls = document.getElementById('nav-controls');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const slideCounter = document.getElementById('slide-counter');
+            
+            let currentSlideIndex = 0;
+            let slides = [];
             
             if (!fileUrl) {
                 loadingText.textContent = 'No file specified';
                 return;
             }
 
-            // Extract original filename for title
             const filename = decodeURIComponent(fileUrl).split('/').pop().replace(/^\d+-/, '');
             document.getElementById('presentation-title').textContent = filename;
 
@@ -89,7 +137,6 @@
                 loadingText.style.display = 'none';
                 viewerContent.innerHTML = `<iframe class="viewer-frame" src="${fileUrl}" title="PDF Viewer"></iframe>`;
             } else {
-                // Render PPTX natively in the browser using pptx-renderer
                 try {
                     const response = await fetch(fileUrl);
                     if (!response.ok) throw new Error('Failed to download PPTX');
@@ -97,12 +144,28 @@
                     const arrayBuffer = await response.arrayBuffer();
                     
                     loadingText.style.display = 'none';
-                    pptxContainer.style.display = 'flex';
+                    pptxContainer.style.display = 'block';
 
                     // Parse and build the PPTX model
                     const viewer = await PptxViewer.open(arrayBuffer, pptxContainer, { 
                         zipLimits: RECOMMENDED_ZIP_LIMITS
                     });
+                    
+                    // Setup Slide Navigation
+                    slides = Array.from(pptxContainer.children);
+                    if (slides.length > 0) {
+                        navControls.style.display = 'flex';
+                        updateSlideVisibility();
+                    }
+
+                    // Keyboard navigation
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+                        if (e.key === 'ArrowLeft') prevSlide();
+                    });
+
+                    prevBtn.addEventListener('click', prevSlide);
+                    nextBtn.addEventListener('click', nextSlide);
                     
                 } catch (error) {
                     console.error('Error rendering PPTX:', error);
@@ -110,6 +173,31 @@
                     loadingText.style.display = 'block';
                     pptxContainer.style.display = 'none';
                 }
+            }
+
+            function nextSlide() {
+                if (currentSlideIndex < slides.length - 1) {
+                    currentSlideIndex++;
+                    updateSlideVisibility();
+                }
+            }
+
+            function prevSlide() {
+                if (currentSlideIndex > 0) {
+                    currentSlideIndex--;
+                    updateSlideVisibility();
+                }
+            }
+
+            function updateSlideVisibility() {
+                slides.forEach((slide, index) => {
+                    if (index === currentSlideIndex) {
+                        slide.classList.add('active-slide');
+                    } else {
+                        slide.classList.remove('active-slide');
+                    }
+                });
+                slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
             }
 
             // Fullscreen logic
