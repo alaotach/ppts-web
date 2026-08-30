@@ -6,7 +6,47 @@
     <title>Presentation Viewer</title>
     <link rel="stylesheet" href="/style.css">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #222; }
+        .viewer-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .viewer-header {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+        #viewer-content {
+            flex-grow: 1;
+            position: relative;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .viewer-frame {
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+        #pptx-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        #loading-text {
+            color: white;
+            font-size: 1.5rem;
+            position: absolute;
+        }
     </style>
 </head>
 <body>
@@ -18,18 +58,24 @@
                 <a href="/" class="btn" style="background: #444; color: white;">Back</a>
             </div>
         </div>
-        <div id="viewer-content" style="flex-grow: 1; height: 100%;">
-            <!-- iframe will be injected here -->
+        <div id="viewer-content">
+            <div id="loading-text">Loading presentation...</div>
+            <div id="pptx-container" style="display: none;"></div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    <script type="module">
+        import { PptxViewer, RECOMMENDED_ZIP_LIMITS } from 'https://cdn.jsdelivr.net/npm/@aiden0z/pptx-renderer/+esm';
+
+        document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const fileUrl = urlParams.get('file');
+            const viewerContent = document.getElementById('viewer-content');
+            const pptxContainer = document.getElementById('pptx-container');
+            const loadingText = document.getElementById('loading-text');
             
             if (!fileUrl) {
-                document.getElementById('viewer-content').innerHTML = '<h2 style="color:white; text-align:center; margin-top:20%">No file specified</h2>';
+                loadingText.textContent = 'No file specified';
                 return;
             }
 
@@ -38,20 +84,32 @@
             document.getElementById('presentation-title').textContent = filename;
 
             const isPdf = fileUrl.toLowerCase().endsWith('.pdf');
-            const viewerContent = document.getElementById('viewer-content');
-            
-            // Build full URL for Office Viewer if needed
-            // NOTE: Office Viewer requires a publicly accessible URL.
-            // Since this is for a domain, we'll construct the full URL.
-            const fullUrl = window.location.origin + fileUrl;
 
             if (isPdf) {
+                loadingText.style.display = 'none';
                 viewerContent.innerHTML = `<iframe class="viewer-frame" src="${fileUrl}" title="PDF Viewer"></iframe>`;
             } else {
-                // Assuming PPT/PPTX
-                // Use Microsoft Office Web Viewer
-                const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fullUrl)}`;
-                viewerContent.innerHTML = `<iframe class="viewer-frame" src="${officeViewerUrl}" title="PPT Viewer"></iframe>`;
+                // Render PPTX natively in the browser using pptx-renderer
+                try {
+                    const response = await fetch(fileUrl);
+                    if (!response.ok) throw new Error('Failed to download PPTX');
+                    
+                    const arrayBuffer = await response.arrayBuffer();
+                    
+                    loadingText.style.display = 'none';
+                    pptxContainer.style.display = 'flex';
+
+                    // Parse and build the PPTX model
+                    const viewer = await PptxViewer.open(arrayBuffer, pptxContainer, { 
+                        zipLimits: RECOMMENDED_ZIP_LIMITS
+                    });
+                    
+                } catch (error) {
+                    console.error('Error rendering PPTX:', error);
+                    loadingText.textContent = 'Failed to load presentation: ' + error.message;
+                    loadingText.style.display = 'block';
+                    pptxContainer.style.display = 'none';
+                }
             }
 
             // Fullscreen logic
