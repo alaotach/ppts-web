@@ -1,3 +1,5 @@
+import { PptxViewer, RECOMMENDED_ZIP_LIMITS } from 'https://cdn.jsdelivr.net/npm/@aiden0z/pptx-renderer/+esm';
+
 document.addEventListener('DOMContentLoaded', () => {
     const grid = document.getElementById('presentations-grid');
     
@@ -33,12 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.innerHTML = files.map(file => {
                 const date = new Date(file.createdAt).toLocaleDateString();
                 const isPdf = file.filename.toLowerCase().endsWith('.pdf');
-                const icon = isPdf ? '📄 PDF' : '📊 PPT';
                 const displayName = file.filename.replace(/^\d+-/, '');
                 
                 return `
                     <div class="card">
-                        <div class="card-preview">${icon}</div>
+                        <div class="card-preview" id="preview-${file.filename}" style="position: relative; overflow: hidden; background: #fff;">
+                            <div class="loading-thumbnail" style="font-size: 1rem;">Loading...</div>
+                        </div>
                         <div class="card-content">
                             <div class="card-title" title="${file.filename}">${displayName}</div>
                             <div class="card-date">${date}</div>
@@ -60,6 +63,57 @@ document.addEventListener('DOMContentLoaded', () => {
                     deleteMessage.textContent = '';
                     deleteForm.reset();
                 });
+            });
+
+            // Generate Thumbnails asynchronously
+            files.forEach(async (file) => {
+                const previewContainer = document.getElementById(`preview-${file.filename}`);
+                const isPdf = file.filename.toLowerCase().endsWith('.pdf');
+                
+                try {
+                    if (isPdf) {
+                        const pdf = await pdfjsLib.getDocument(file.url).promise;
+                        const page = await pdf.getPage(1);
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const viewport = page.getViewport({ scale: 1 }); // low res is fine for thumbnail
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        canvas.style.width = '100%';
+                        canvas.style.height = '100%';
+                        canvas.style.objectFit = 'cover';
+                        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                        previewContainer.innerHTML = '';
+                        previewContainer.appendChild(canvas);
+                    } else {
+                        // PPTX thumbnail
+                        const resp = await fetch(file.url);
+                        const arrayBuffer = await resp.arrayBuffer();
+                        const pptxWrapper = document.createElement('div');
+                        pptxWrapper.style.width = '100%';
+                        pptxWrapper.style.height = '100%';
+                        pptxWrapper.style.position = 'absolute';
+                        pptxWrapper.style.top = '0';
+                        pptxWrapper.style.left = '0';
+                        // Force scale down so it fits the thumbnail box (assuming typical 1920x1080 slide)
+                        pptxWrapper.style.transform = 'scale(0.15)';
+                        pptxWrapper.style.transformOrigin = 'top left';
+                        
+                        await PptxViewer.open(arrayBuffer, pptxWrapper, { zipLimits: RECOMMENDED_ZIP_LIMITS });
+                        
+                        // Hide all slides except the first one
+                        const slides = Array.from(pptxWrapper.children);
+                        slides.forEach((slide, i) => {
+                            if (i !== 0) slide.style.display = 'none';
+                        });
+                        
+                        previewContainer.innerHTML = '';
+                        previewContainer.appendChild(pptxWrapper);
+                    }
+                } catch (e) {
+                    console.error('Thumbnail failed for ' + file.filename, e);
+                    previewContainer.innerHTML = `<div style="font-size: 2rem; color: #adb5bd;">${isPdf ? '📄' : '📊'}</div>`;
+                }
             });
 
         } catch (error) {
