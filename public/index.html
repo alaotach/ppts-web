@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentations</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>Presentations</h1>
+            <button id="open-upload-modal" class="btn primary">Upload</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="presentations-grid" id="presentations-grid">
+            <!-- Presentations will be injected here via JS -->
+            <div class="loading">Loading presentations...</div>
+        </div>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Upload Presentation</h2>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label for="secretCode">Secret Code</label>
+                    <input type="password" id="secretCode" name="secretCode" required placeholder="Enter secret code">
+                </div>
+                <div class="form-group">
+                    <label for="presentation">File (PDF/PPT)</label>
+                    <input type="file" id="presentation" name="presentation" accept=".pdf,.ppt,.pptx" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary" id="upload-btn">Upload</button>
+                </div>
+                <div id="upload-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation Viewer</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div class="viewer-container">
+        <div class="viewer-header">
+            <h2 id="presentation-title">Loading...</h2>
+            <div>
+                <button class="btn primary" id="fullscreen-btn">Full Screen</button>
+                <a href="/" class="btn" style="background: #444; color: white;">Back</a>
+            </div>
+        </div>
+        <div id="viewer-content" style="flex-grow: 1; height: 100%;">
+            <!-- iframe will be injected here -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileUrl = urlParams.get('file');
+            
+            if (!fileUrl) {
+                document.getElementById('viewer-content').innerHTML = '<h2 style="color:white; text-align:center; margin-top:20%">No file specified</h2>';
+                return;
+            }
+
+            // Extract original filename for title
+            const filename = decodeURIComponent(fileUrl).split('/').pop().replace(/^\d+-/, '');
+            document.getElementById('presentation-title').textContent = filename;
+
+            const isPdf = fileUrl.toLowerCase().endsWith('.pdf');
+            const viewerContent = document.getElementById('viewer-content');
+            
+            // Build full URL for Office Viewer if needed
+            // NOTE: Office Viewer requires a publicly accessible URL.
+            // Since this is for a domain, we'll construct the full URL.
+            const fullUrl = window.location.origin + fileUrl;
+
+            if (isPdf) {
+                viewerContent.innerHTML = `<iframe class="viewer-frame" src="${fileUrl}" title="PDF Viewer"></iframe>`;
+            } else {
+                // Assuming PPT/PPTX
+                // Use Microsoft Office Web Viewer
+                const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fullUrl)}`;
+                viewerContent.innerHTML = `<iframe class="viewer-frame" src="${officeViewerUrl}" title="PPT Viewer"></iframe>`;
+            }
+
+            // Fullscreen logic
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            fullscreenBtn.addEventListener('click', () => {
+                const container = document.querySelector('.viewer-container');
+                if (!document.fullscreenElement) {
+                    container.requestFullscreen().catch(err => {
+                        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
