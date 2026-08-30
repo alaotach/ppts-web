@@ -27,9 +27,10 @@ const storage = multer.diskStorage({
     cb(null, UPLOADS_DIR);
   },
   filename: (req, file, cb) => {
-    // Keep original filename, but prepend timestamp to avoid collisions
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    const className = (req.body.className || 'Uncategorized').replace(/___/g, '');
+    const subjectName = (req.body.subjectName || 'Uncategorized').replace(/___/g, '');
+    cb(null, `${uniqueSuffix}___${className}___${subjectName}___${file.originalname}`);
   }
 });
 const upload = multer({ storage: storage });
@@ -69,8 +70,23 @@ app.get('/api/presentations', (req, res) => {
     // Sort files by creation time (newest first)
     const filesWithStats = files.map(file => {
       const stats = fs.statSync(path.join(UPLOADS_DIR, file));
+      const parts = file.split('___');
+      let className = 'Uncategorized', subjectName = 'Uncategorized', displayName = file;
+      
+      if (parts.length >= 4) {
+        className = parts[1];
+        subjectName = parts[2];
+        displayName = parts.slice(3).join('___');
+      } else {
+        // Fallback for older files uploaded before this feature
+        displayName = file.replace(/^\d+-/, '');
+      }
+
       return {
         filename: file,
+        className,
+        subjectName,
+        displayName,
         url: `/uploads/${file}`,
         createdAt: stats.mtime
       };

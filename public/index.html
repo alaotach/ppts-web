@@ -15,10 +15,20 @@
     </header>
 
     <main>
-        <div class="presentations-grid" id="presentations-grid">
-            <!-- Presentations will be injected here via JS -->
-            <div class="loading">Loading presentations...</div>
-        </div>
+
+    <!-- Filter Bar -->
+    <div class="filters" style="margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <select id="filter-class" class="form-group" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd; min-width: 150px;">
+            <option value="">All Classes</option>
+        </select>
+        <select id="filter-subject" class="form-group" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd; min-width: 150px;">
+            <option value="">All Subjects</option>
+        </select>
+    </div>
+
+    <div class="grid" id="presentations-grid">
+        <!-- Presentations will be loaded here -->
+    </div>
     </main>
 
     <!-- Upload Modal -->
@@ -27,6 +37,16 @@
             <span class="close-btn" id="close-upload">&times;</span>
             <h2>Upload Presentation</h2>
             <form id="upload-form">
+                <div class="form-group">
+                    <label for="className">Class (e.g. Grade 10)</label>
+                    <input type="text" id="className" name="className" list="class-list" required placeholder="Type or select class">
+                    <datalist id="class-list"></datalist>
+                </div>
+                <div class="form-group">
+                    <label for="subjectName">Subject (e.g. Science)</label>
+                    <input type="text" id="subjectName" name="subjectName" list="subject-list" required placeholder="Type or select subject">
+                    <datalist id="subject-list"></datalist>
+                </div>
                 <div class="form-group">
                     <label for="secretCode">Secret Code</label>
                     <input type="password" id="secretCode" name="secretCode" required placeholder="Enter secret code">

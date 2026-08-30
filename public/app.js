@@ -19,103 +19,150 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteBtn = document.getElementById('delete-btn');
     const deleteFilenameDisplay = document.getElementById('delete-filename');
     
+    // Filters and metadata
+    const filterClass = document.getElementById('filter-class');
+    const filterSubject = document.getElementById('filter-subject');
+    const classList = document.getElementById('class-list');
+    const subjectList = document.getElementById('subject-list');
+    
     let fileToDelete = null;
+    let allFiles = []; // Store all fetched files
+
+    const renderGrid = () => {
+        const selectedClass = filterClass.value;
+        const selectedSubject = filterSubject.value;
+
+        // Filter files
+        const filteredFiles = allFiles.filter(file => {
+            const matchClass = selectedClass === '' || file.className === selectedClass;
+            const matchSubject = selectedSubject === '' || file.subjectName === selectedSubject;
+            return matchClass && matchSubject;
+        });
+
+        if (filteredFiles.length === 0) {
+            grid.innerHTML = '<div class="empty-state">No presentations found.</div>';
+            return;
+        }
+
+        grid.innerHTML = filteredFiles.map(file => {
+            const date = new Date(file.createdAt).toLocaleDateString();
+            const isPdf = file.filename.toLowerCase().endsWith('.pdf');
+            
+            return `
+                <div class="card">
+                    <div class="card-preview" id="preview-${file.filename}" style="position: relative; overflow: hidden; background: #fff;">
+                        <div class="loading-thumbnail" style="font-size: 1rem;">Loading...</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-title" title="${file.displayName}">${file.displayName}</div>
+                        <div class="card-tags" style="margin-bottom: 8px;">
+                            <span style="font-size: 0.75rem; background: #eee; padding: 2px 6px; border-radius: 4px; color: #333;">${file.className}</span>
+                            <span style="font-size: 0.75rem; background: #eee; padding: 2px 6px; border-radius: 4px; color: #333;">${file.subjectName}</span>
+                        </div>
+                        <div class="card-date">${date}</div>
+                        <div style="display: flex; gap: 10px;">
+                            <a href="/present.html?file=${encodeURIComponent(file.url)}" class="btn primary" style="flex-grow: 1;">Present</a>
+                            <button class="btn delete-trigger" data-filename="${file.filename}" data-displayname="${file.displayName}" style="background: #dc3545; color: white; padding: 0.5rem;">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Attach delete listeners
+        document.querySelectorAll('.delete-trigger').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                fileToDelete = e.currentTarget.getAttribute('data-filename');
+                const displayName = e.currentTarget.getAttribute('data-displayname');
+                deleteFilenameDisplay.textContent = displayName;
+                deleteModal.classList.add('show');
+                deleteMessage.textContent = '';
+                deleteForm.reset();
+            });
+        });
+
+        // Generate Thumbnails asynchronously for visible files only
+        filteredFiles.forEach(async (file) => {
+            const previewContainer = document.getElementById(`preview-${file.filename}`);
+            if (!previewContainer) return;
+            const isPdf = file.filename.toLowerCase().endsWith('.pdf');
+            
+            try {
+                if (isPdf) {
+                    const pdf = await pdfjsLib.getDocument(file.url).promise;
+                    const page = await pdf.getPage(1);
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const viewport = page.getViewport({ scale: 1 });
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                    canvas.style.objectFit = 'cover';
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                    if (document.body.contains(previewContainer)) {
+                        previewContainer.innerHTML = '';
+                        previewContainer.appendChild(canvas);
+                    }
+                } else {
+                    // PPTX thumbnail
+                    const resp = await fetch(file.url);
+                    const arrayBuffer = await resp.arrayBuffer();
+                    const pptxWrapper = document.createElement('div');
+                    pptxWrapper.style.width = '100%';
+                    pptxWrapper.style.height = '100%';
+                    pptxWrapper.style.position = 'absolute';
+                    pptxWrapper.style.top = '0';
+                    pptxWrapper.style.left = '0';
+                    pptxWrapper.style.transform = 'scale(0.15)';
+                    pptxWrapper.style.transformOrigin = 'top left';
+                    
+                    await PptxViewer.open(arrayBuffer, pptxWrapper, { zipLimits: RECOMMENDED_ZIP_LIMITS });
+                    
+                    const slides = Array.from(pptxWrapper.children);
+                    slides.forEach((slide, i) => {
+                        if (i !== 0) slide.style.display = 'none';
+                    });
+                    
+                    if (document.body.contains(previewContainer)) {
+                        previewContainer.innerHTML = '';
+                        previewContainer.appendChild(pptxWrapper);
+                    }
+                }
+            } catch (e) {
+                console.error('Thumbnail failed for ' + file.filename, e);
+                if (document.body.contains(previewContainer)) {
+                    previewContainer.innerHTML = `<div style="font-size: 2rem; color: #adb5bd;">${isPdf ? '📄' : '📊'}</div>`;
+                }
+            }
+        });
+    };
+
+    const updateFilterOptions = () => {
+        const uniqueClasses = [...new Set(allFiles.map(f => f.className).filter(c => c && c !== 'Uncategorized'))].sort();
+        const uniqueSubjects = [...new Set(allFiles.map(f => f.subjectName).filter(s => s && s !== 'Uncategorized'))].sort();
+
+        // Update select dropdowns
+        filterClass.innerHTML = '<option value="">All Classes</option>' + uniqueClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+        filterSubject.innerHTML = '<option value="">All Subjects</option>' + uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+        // Update datalists for the upload form
+        classList.innerHTML = uniqueClasses.map(c => `<option value="${c}">`).join('');
+        subjectList.innerHTML = uniqueSubjects.map(s => `<option value="${s}">`).join('');
+    };
+
+    // Listeners for filters
+    filterClass.addEventListener('change', renderGrid);
+    filterSubject.addEventListener('change', renderGrid);
 
     // Fetch and display presentations
     const fetchPresentations = async () => {
         try {
             const response = await fetch('/api/presentations');
-            const files = await response.json();
+            allFiles = await response.json();
             
-            if (files.length === 0) {
-                grid.innerHTML = '<div class="empty-state">No presentations uploaded yet.</div>';
-                return;
-            }
-
-            grid.innerHTML = files.map(file => {
-                const date = new Date(file.createdAt).toLocaleDateString();
-                const isPdf = file.filename.toLowerCase().endsWith('.pdf');
-                const displayName = file.filename.replace(/^\d+-/, '');
-                
-                return `
-                    <div class="card">
-                        <div class="card-preview" id="preview-${file.filename}" style="position: relative; overflow: hidden; background: #fff;">
-                            <div class="loading-thumbnail" style="font-size: 1rem;">Loading...</div>
-                        </div>
-                        <div class="card-content">
-                            <div class="card-title" title="${file.filename}">${displayName}</div>
-                            <div class="card-date">${date}</div>
-                            <div style="display: flex; gap: 10px;">
-                                <a href="/present.html?file=${encodeURIComponent(file.url)}" class="btn primary" style="flex-grow: 1;">Present</a>
-                                <button class="btn delete-trigger" data-filename="${file.filename}" style="background: #dc3545; color: white; padding: 0.5rem;">🗑️</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Attach delete listeners
-            document.querySelectorAll('.delete-trigger').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    fileToDelete = e.currentTarget.getAttribute('data-filename');
-                    deleteFilenameDisplay.textContent = fileToDelete.replace(/^\d+-/, '');
-                    deleteModal.classList.add('show');
-                    deleteMessage.textContent = '';
-                    deleteForm.reset();
-                });
-            });
-
-            // Generate Thumbnails asynchronously
-            files.forEach(async (file) => {
-                const previewContainer = document.getElementById(`preview-${file.filename}`);
-                const isPdf = file.filename.toLowerCase().endsWith('.pdf');
-                
-                try {
-                    if (isPdf) {
-                        const pdf = await pdfjsLib.getDocument(file.url).promise;
-                        const page = await pdf.getPage(1);
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        const viewport = page.getViewport({ scale: 1 }); // low res is fine for thumbnail
-                        canvas.width = viewport.width;
-                        canvas.height = viewport.height;
-                        canvas.style.width = '100%';
-                        canvas.style.height = '100%';
-                        canvas.style.objectFit = 'cover';
-                        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-                        previewContainer.innerHTML = '';
-                        previewContainer.appendChild(canvas);
-                    } else {
-                        // PPTX thumbnail
-                        const resp = await fetch(file.url);
-                        const arrayBuffer = await resp.arrayBuffer();
-                        const pptxWrapper = document.createElement('div');
-                        pptxWrapper.style.width = '100%';
-                        pptxWrapper.style.height = '100%';
-                        pptxWrapper.style.position = 'absolute';
-                        pptxWrapper.style.top = '0';
-                        pptxWrapper.style.left = '0';
-                        // Force scale down so it fits the thumbnail box (assuming typical 1920x1080 slide)
-                        pptxWrapper.style.transform = 'scale(0.15)';
-                        pptxWrapper.style.transformOrigin = 'top left';
-                        
-                        await PptxViewer.open(arrayBuffer, pptxWrapper, { zipLimits: RECOMMENDED_ZIP_LIMITS });
-                        
-                        // Hide all slides except the first one
-                        const slides = Array.from(pptxWrapper.children);
-                        slides.forEach((slide, i) => {
-                            if (i !== 0) slide.style.display = 'none';
-                        });
-                        
-                        previewContainer.innerHTML = '';
-                        previewContainer.appendChild(pptxWrapper);
-                    }
-                } catch (e) {
-                    console.error('Thumbnail failed for ' + file.filename, e);
-                    previewContainer.innerHTML = `<div style="font-size: 2rem; color: #adb5bd;">${isPdf ? '📄' : '📊'}</div>`;
-                }
-            });
-
+            updateFilterOptions();
+            renderGrid();
         } catch (error) {
             grid.innerHTML = '<div class="error">Failed to load presentations.</div>';
         }
@@ -142,11 +189,15 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const secretCode = document.getElementById('secretCode').value;
+        const className = document.getElementById('className').value;
+        const subjectName = document.getElementById('subjectName').value;
         const fileInput = document.getElementById('presentation');
         if (!fileInput.files[0]) return;
 
         const formData = new FormData();
         formData.append('secretCode', secretCode);
+        formData.append('className', className);
+        formData.append('subjectName', subjectName);
         formData.append('presentation', fileInput.files[0]);
 
         uploadBtn.disabled = true;
