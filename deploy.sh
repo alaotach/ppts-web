@@ -9,7 +9,7 @@ cd /home/aloo/ppts-web
 npm install
 
 # Setup environment variables
-echo "PORT=3000" > .env
+echo "PORT=3007" > .env
 echo "SECRET_CODE=supersecret" >> .env
 
 # Start app with PM2
@@ -26,7 +26,7 @@ server {
     client_max_body_size 50M;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:3007;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
