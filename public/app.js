@@ -22,8 +22,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Filters and metadata
     const filterClass = document.getElementById('filter-class');
     const filterSubject = document.getElementById('filter-subject');
-    const classList = document.getElementById('class-list');
-    const subjectList = document.getElementById('subject-list');
+    const classSelect = document.getElementById('classSelect');
+    const subjectSelect = document.getElementById('subjectSelect');
+    const classNameInput = document.getElementById('className');
+    const subjectNameInput = document.getElementById('subjectName');
+    
+    // Toggle custom inputs
+    classSelect.addEventListener('change', (e) => {
+        if (e.target.value === '__NEW__') {
+            classNameInput.style.display = 'block';
+            classNameInput.required = true;
+        } else {
+            classNameInput.style.display = 'none';
+            classNameInput.required = false;
+            classNameInput.value = '';
+        }
+    });
+
+    subjectSelect.addEventListener('change', (e) => {
+        if (e.target.value === '__NEW__') {
+            subjectNameInput.style.display = 'block';
+            subjectNameInput.required = true;
+        } else {
+            subjectNameInput.style.display = 'none';
+            subjectNameInput.required = false;
+            subjectNameInput.value = '';
+        }
+    });
     
     let fileToDelete = null;
     let allFiles = []; // Store all fetched files
@@ -157,13 +182,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const uniqueClasses = [...new Set([...defaultClasses, ...fileClasses])];
         const uniqueSubjects = [...new Set([...defaultSubjects, ...fileSubjects])];
 
-        // Update select dropdowns
+        // Update select dropdowns (filters)
         filterClass.innerHTML = '<option value="">All Classes</option>' + uniqueClasses.map(c => `<option value="${c}">${c}</option>`).join('');
         filterSubject.innerHTML = '<option value="">All Subjects</option>' + uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
 
-        // Update datalists for the upload form
-        classList.innerHTML = uniqueClasses.map(c => `<option value="${c}">`).join('');
-        subjectList.innerHTML = uniqueSubjects.map(s => `<option value="${s}">`).join('');
+        // Update upload form dropdowns
+        classSelect.innerHTML = '<option value="">Select Class...</option>' + 
+                                uniqueClasses.map(c => `<option value="${c}">${c}</option>`).join('') +
+                                '<option value="__NEW__">+ Create New Class...</option>';
+                                
+        subjectSelect.innerHTML = '<option value="">Select Subject...</option>' + 
+                                  uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('') +
+                                  '<option value="__NEW__">+ Create New Subject...</option>';
     };
 
     // Listeners for filters
@@ -190,6 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadModal.classList.add('show');
         uploadMessage.textContent = '';
         uploadForm.reset();
+        classNameInput.style.display = 'none';
+        subjectNameInput.style.display = 'none';
     });
 
     closeUploadBtn.addEventListener('click', () => uploadModal.classList.remove('show'));
@@ -204,15 +236,20 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const secretCode = document.getElementById('secretCode').value;
-        const className = document.getElementById('className').value;
-        const subjectName = document.getElementById('subjectName').value;
+        
+        let finalClassName = classSelect.value;
+        if (finalClassName === '__NEW__') finalClassName = classNameInput.value.trim();
+        
+        let finalSubjectName = subjectSelect.value;
+        if (finalSubjectName === '__NEW__') finalSubjectName = subjectNameInput.value.trim();
+
         const fileInput = document.getElementById('presentation');
         if (!fileInput.files[0]) return;
 
         const formData = new FormData();
         formData.append('secretCode', secretCode);
-        formData.append('className', className);
-        formData.append('subjectName', subjectName);
+        formData.append('className', finalClassName);
+        formData.append('subjectName', finalSubjectName);
         formData.append('presentation', fileInput.files[0]);
 
         uploadBtn.disabled = true;
@@ -240,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadBtn.textContent = 'Upload';
         }
     });
-
     // Delete logic
     deleteForm.addEventListener('submit', async (e) => {
         e.preventDefault();

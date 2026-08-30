@@ -38,14 +38,18 @@
             <h2>Upload Presentation</h2>
             <form id="upload-form">
                 <div class="form-group">
-                    <label for="className">Class (e.g. Grade 10)</label>
-                    <input type="text" id="className" name="className" list="class-list" required placeholder="Type or select class">
-                    <datalist id="class-list"></datalist>
+                    <label for="classSelect">Class</label>
+                    <select id="classSelect" required style="width: 100%; padding: 0.75rem; border: 1px solid #e6e8eb; border-radius: 4px; font-size: 1rem; margin-bottom: 0.5rem;">
+                        <option value="">Select Class...</option>
+                    </select>
+                    <input type="text" id="className" name="className" style="display: none;" placeholder="Type new class name">
                 </div>
                 <div class="form-group">
-                    <label for="subjectName">Subject (e.g. Science)</label>
-                    <input type="text" id="subjectName" name="subjectName" list="subject-list" required placeholder="Type or select subject">
-                    <datalist id="subject-list"></datalist>
+                    <label for="subjectSelect">Subject</label>
+                    <select id="subjectSelect" required style="width: 100%; padding: 0.75rem; border: 1px solid #e6e8eb; border-radius: 4px; font-size: 1rem; margin-bottom: 0.5rem;">
+                        <option value="">Select Subject...</option>
+                    </select>
+                    <input type="text" id="subjectName" name="subjectName" style="display: none;" placeholder="Type new subject name">
                 </div>
                 <div class="form-group">
                     <label for="secretCode">Secret Code</label>
