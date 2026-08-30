@@ -24,7 +24,7 @@
     <!-- Upload Modal -->
     <div id="upload-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn" id="close-upload">&times;</span>
             <h2>Upload Presentation</h2>
             <form id="upload-form">
                 <div class="form-group">
@@ -39,6 +39,25 @@
                     <button type="submit" class="btn primary" id="upload-btn">Upload</button>
                 </div>
                 <div id="upload-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-delete">&times;</span>
+            <h2>Delete Presentation</h2>
+            <p>Are you sure you want to delete <strong id="delete-filename"></strong>?</p>
+            <form id="delete-form">
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="deleteSecretCode">Secret Code</label>
+                    <input type="password" id="deleteSecretCode" required placeholder="Enter secret code to confirm">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn" style="background: #dc3545; color: white;" id="delete-btn">Delete Permanently</button>
+                </div>
+                <div id="delete-message"></div>
             </form>
         </div>
     </div>

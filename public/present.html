@@ -78,6 +78,15 @@
             width: 100%;
             height: 100%;
         }
+        #zoom-wrapper {
+            transition: transform 0.2s;
+            transform-origin: center center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
         #pptx-container {
             width: 100%;
             height: 100%;
@@ -106,7 +115,7 @@
         /* Navigation Controls */
         .nav-controls {
             display: none;
-            position: absolute;
+            position: fixed; /* Changed to fixed so it's always on top even when zoomed */
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
@@ -126,6 +135,12 @@
             padding: 0 10px;
         }
         .nav-btn:hover { color: #00c4cc; }
+        .zoom-btn {
+            font-size: 1.5rem;
+            border-left: 1px solid #444;
+            padding-left: 15px;
+            margin-left: 5px;
+        }
         #slide-counter { color: white; font-family: sans-serif; font-size: 1.1rem; min-width: 60px; text-align: center; }
     </style>
 </head>
@@ -141,12 +156,16 @@
         </div>
         <div id="viewer-content">
             <div id="loading-text">Loading presentation...</div>
-            <div id="pptx-container" style="display: none;"></div>
+            <div id="zoom-wrapper">
+                <div id="pptx-container" style="display: none;"></div>
+            </div>
             
             <div class="nav-controls" id="nav-controls">
                 <button class="nav-btn" id="prev-btn">&#8592;</button>
                 <span id="slide-counter">1 / 1</span>
                 <button class="nav-btn" id="next-btn">&#8594;</button>
+                <button class="nav-btn zoom-btn" id="zoom-out">-</button>
+                <button class="nav-btn zoom-btn" id="zoom-in" style="border: none; padding-left: 10px; margin-left: 0;">+</button>
             </div>
         </div>
     </div>
@@ -221,6 +240,43 @@
             prevBtn.addEventListener('click', prevSlide);
             nextBtn.addEventListener('click', nextSlide);
 
+            // --- Zoom Logic ---
+            const zoomWrapper = document.getElementById('zoom-wrapper');
+            let currentZoom = 1;
+            
+            function updateZoom() {
+                zoomWrapper.style.transform = `scale(${currentZoom})`;
+                // If zoomed in, allow scrolling in viewerContent
+                if (currentZoom > 1) {
+                    viewerContent.style.overflow = 'auto';
+                } else {
+                    viewerContent.style.overflow = 'hidden';
+                }
+            }
+
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                currentZoom = Math.min(currentZoom + 0.25, 3); // Max zoom 3x
+                updateZoom();
+            });
+
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                currentZoom = Math.max(currentZoom - 0.25, 0.5); // Min zoom 0.5x
+                updateZoom();
+            });
+
+            // Wheel zoom
+            viewerContent.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                        currentZoom = Math.min(currentZoom + 0.1, 3);
+                    } else {
+                        currentZoom = Math.max(currentZoom - 0.1, 0.5);
+                    }
+                    updateZoom();
+                }
+            }, { passive: false });
+
             // --- Rendering Logic ---
             if (isPdf) {
                 isPdfMode = true;
@@ -239,7 +295,7 @@
                     canvas.style.maxWidth = '100%';
                     canvas.style.maxHeight = '100%';
                     canvas.style.objectFit = 'contain';
-                    viewerContent.appendChild(canvas);
+                    zoomWrapper.appendChild(canvas);
 
                     const loadingTask = pdfjsLib.getDocument(fileUrl);
                     loadingTask.promise.then(pdf => {

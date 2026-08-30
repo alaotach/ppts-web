@@ -80,6 +80,30 @@ app.get('/api/presentations', (req, res) => {
   });
 });
 
+// Delete presentation endpoint
+app.delete('/api/presentations/:filename', (req, res) => {
+  const { secretCode } = req.body;
+  
+  if (secretCode !== SECRET_CODE) {
+    return res.status(401).json({ error: 'Invalid secret code' });
+  }
+
+  const filename = req.params.filename;
+  const safeFilename = path.basename(filename); // Prevent directory traversal
+  const filePath = path.join(UPLOADS_DIR, safeFilename);
+
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+      res.json({ message: 'File deleted successfully' });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to delete file' });
+    }
+  } else {
+    res.status(404).json({ error: 'File not found' });
+  }
+});
+
 // Explicit route for / just in case express.static misses it
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
