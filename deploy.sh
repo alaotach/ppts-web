@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deployment script for Ubuntu on AWS EC2
-# Run this script on your EC2 instance
+# Run this script from /home/aloo/ppts-web on your EC2 instance
 
 # Update system
 sudo apt update && sudo apt upgrade -y
@@ -15,19 +15,15 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 # Install PM2 globally for managing the Node process
 sudo npm install -g pm2
 
-# Move to app directory (Assuming the app is in /var/www/ppts-web)
-sudo mkdir -p /var/www/ppts-web
-# NOTE: You should copy your project files to /var/www/ppts-web before running npm install here
-# Example: scp -r * ubuntu@YOUR_EC2_IP:/var/www/ppts-web
-
-cd /var/www/ppts-web
+# Ensure we are in the correct directory
+cd /home/aloo/ppts-web
 
 # Install dependencies
 npm install
 
 # Setup environment variables
 echo "PORT=3000" > .env
-echo "SECRET_CODE=your_secret_code_here" >> .env
+echo "SECRET_CODE=supersecret" >> .env
 
 # Start app with PM2
 pm2 start server.js --name "ppts-web"
@@ -55,7 +51,7 @@ server {
 EOF
 
 sudo ln -s /etc/nginx/sites-available/ppts-web /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl restart nginx
 
