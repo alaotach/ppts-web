@@ -139,8 +139,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateFilterOptions = () => {
-        const uniqueClasses = [...new Set(allFiles.map(f => f.className).filter(c => c && c !== 'Uncategorized'))].sort();
-        const uniqueSubjects = [...new Set(allFiles.map(f => f.subjectName).filter(s => s && s !== 'Uncategorized'))].sort();
+        const defaultClasses = [
+            'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6',
+            'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'
+        ];
+        
+        const defaultSubjects = [
+            'Hindi', 'English', 'Mathematics', 'Science', 'Social Science',
+            'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Physical Education',
+            'Sanskrit', 'Economics', 'Accountancy', 'Business Studies', 'History', 'Geography', 'Political Science'
+        ];
+
+        const fileClasses = allFiles.map(f => f.className).filter(c => c && c !== 'Uncategorized');
+        const fileSubjects = allFiles.map(f => f.subjectName).filter(s => s && s !== 'Uncategorized');
+
+        // Merge defaults with any custom ones found in files (keeping defaults at the top)
+        const uniqueClasses = [...new Set([...defaultClasses, ...fileClasses])];
+        const uniqueSubjects = [...new Set([...defaultSubjects, ...fileSubjects])];
 
         // Update select dropdowns
         filterClass.innerHTML = '<option value="">All Classes</option>' + uniqueClasses.map(c => `<option value="${c}">${c}</option>`).join('');
