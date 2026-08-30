@@ -204,12 +204,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchPresentations = async () => {
         try {
             const response = await fetch('/api/presentations');
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`API returned ${response.status}: ${text}`);
+            }
             allFiles = await response.json();
             
             updateFilterOptions();
             renderGrid();
         } catch (error) {
-            grid.innerHTML = '<div class="error">Failed to load presentations.</div>';
+            grid.innerHTML = `<div class="error" style="padding:2rem;">Failed to load presentations.<br><br>Error: ${error.message}</div>`;
+            console.error(error);
         }
     };
 
