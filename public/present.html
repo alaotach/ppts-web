@@ -14,12 +14,15 @@
             position: relative;
         }
         
-        /* The header starts hidden and absolute to avoid cropping the bottom */
+        .viewer-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+        
+        /* Default Header (Normal View) */
         .viewer-header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
             background: rgba(0,0,0,0.8);
             color: white;
             padding: 1rem 2rem;
@@ -28,12 +31,27 @@
             align-items: center;
             z-index: 50;
             box-sizing: border-box;
-            transform: translateY(-100%);
             transition: transform 0.3s ease-in-out;
         }
 
-        /* Invisible hover area at the top of the screen */
+        /* Hover zone is disabled in normal view */
         .hover-zone {
+            display: none;
+        }
+
+        /* FULLSCREEN STATE */
+        .viewer-container:fullscreen .viewer-header,
+        .viewer-container:-webkit-full-screen .viewer-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            transform: translateY(-100%);
+        }
+
+        .viewer-container:fullscreen .hover-zone,
+        .viewer-container:-webkit-full-screen .hover-zone {
+            display: block;
             position: absolute;
             top: 0;
             left: 0;
@@ -42,20 +60,21 @@
             z-index: 40;
         }
 
-        /* Show header when hovering over the zone, or over the header itself */
-        .hover-zone:hover + .viewer-header,
-        .viewer-header:hover {
+        .viewer-container:fullscreen .hover-zone:hover + .viewer-header,
+        .viewer-container:fullscreen .viewer-header:hover,
+        .viewer-container:-webkit-full-screen .hover-zone:hover + .viewer-header,
+        .viewer-container:-webkit-full-screen .viewer-header:hover {
             transform: translateY(0);
         }
 
         #viewer-content {
             flex-grow: 1;
+            min-height: 0; /* Fixes flex child percentage height bug */
             position: relative;
             overflow: hidden; 
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100%;
             width: 100%;
         }
         .viewer-frame {
